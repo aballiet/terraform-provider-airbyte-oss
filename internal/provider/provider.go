@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"time"
 )
 
 var _ provider.Provider = &AirbyteProvider{}
@@ -27,6 +28,7 @@ type AirbyteProviderModel struct {
 	ServerURL types.String `tfsdk:"server_url"`
 	Username  types.String `tfsdk:"username"`
 	Password  types.String `tfsdk:"password"`
+	Timeout   types.Int64  `tfsdk:"timeout"`
 }
 
 func (p *AirbyteProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -74,6 +76,10 @@ func (p *AirbyteProvider) Schema(ctx context.Context, req provider.SchemaRequest
 				Optional:  true,
 				Sensitive: true,
 			},
+			"timeout": schema.Int64Attribute{
+				Optional:  true,
+				Sensitive: false,
+			},
 		},
 	}
 }
@@ -95,6 +101,15 @@ func (p *AirbyteProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 	username := data.Username.ValueString()
 	password := data.Password.ValueString()
+	timeout := data.Timeout.ValueInt64()
+
+	var timeoutValue time.Duration
+	if timeout > 0 {
+		timeoutValue = time.Duration(timeout) * time.Second
+	} else {
+		timeoutValue = 60 * time.Second
+	}
+
 	security := shared.Security{
 		Username: username,
 		Password: password,
@@ -103,6 +118,7 @@ func (p *AirbyteProvider) Configure(ctx context.Context, req provider.ConfigureR
 	opts := []sdk.SDKOption{
 		sdk.WithServerURL(ServerURL),
 		sdk.WithSecurity(security),
+		sdk.WithTimeout(timeoutValue),
 	}
 	client := sdk.New(opts...)
 

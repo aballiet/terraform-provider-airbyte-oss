@@ -183,6 +183,12 @@ func WithClient(client HTTPClient) SDKOption {
 	}
 }
 
+func WithTimeout(timeout time.Duration) SDKOption {
+	return func(sdk *SDK) {
+		sdk.sdkConfiguration.DefaultClient = &http.Client{Timeout: timeout}
+	}
+}
+
 func withSecurity(security interface{}) func(context.Context) (interface{}, error) {
 	return func(context.Context) (interface{}, error) {
 		return &security, nil
